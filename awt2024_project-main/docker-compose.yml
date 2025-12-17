@@ -1,0 +1,77 @@
+services:
+
+  writma_be:
+    build:
+      context: ./writma_be
+      dockerfile: Dockerfile
+    develop:
+      watch:
+        - action: sync
+          path: ./writma_be # local folder
+          target: /app # workdir
+          ignore:
+            - node_modules
+        - action: rebuild
+          path: ./writma_be/package.json
+          target: /app/package.json
+    image: writma_be
+    container_name: writma_be
+    command: npm run start:dev
+    volumes:
+      - /app/node_modules
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+    env_file: ./writma_be/.env
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - MONGO_PORT=${MONGO_PORT:-27017}
+      - MONGO_DB=${MONGO_DB:-writma}
+    networks:
+        - writma_network
+
+  mongodb:
+    image: mongo
+    volumes:
+      - data_volume:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+        - writma_network
+
+  writma_fe:
+    build:
+      context: ./writma_fe
+      dockerfile: Dockerfile
+    develop:
+      watch:
+        - action: sync
+          path: ./writma_fe # local folder
+          target: /app # workdir
+          ignore:
+            - node_modules
+        - action: rebuild
+          path: ./writma_fe/package.json
+          target: /app/package.json
+    image: writma_fe 
+    container_name: writma_fe
+    volumes:
+      - /etc/nginx/
+      - /var/www/html/
+    depends_on:
+      - writma_be
+    ports:
+      - "3000:3000"
+    networks:
+        - writma_network
+
+networks:
+  writma_network:
+    driver: bridge
+
+volumes:
+  data_volume:
+  node_modules:
+  web_root:
+    driver: local
